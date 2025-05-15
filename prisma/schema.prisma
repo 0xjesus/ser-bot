@@ -1,0 +1,122 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+model Contact {
+  id                 String         @id @default(cuid())
+  phoneNumber        String         @unique
+  name               String?
+  email              String?        @unique
+  whatsappProfileUrl String?
+  firstContactAt     DateTime       @default(now())
+  lastContactAt      DateTime       @updatedAt
+  status             ContactStatus  @default(PROSPECT)
+  leadScore          Int?           @default(0)
+  source             String?
+  notes              String?
+  customFields       Json?
+  isOptedIn          Boolean        @default(false)
+  isActive           Boolean        @default(true)
+  createdAt          DateTime       @default(now())
+  updatedAt          DateTime       @updatedAt
+  bookings           Booking[]
+  conversations      Conversation[]
+}
+
+model Conversation {
+  id        String    @id @default(cuid())
+  contactId String
+  startedAt DateTime  @default(now())
+  endedAt   DateTime?
+  context   Json?
+  intent    String?
+  sentiment String?
+  summary   String?
+  isActive  Boolean   @default(true)
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  contact   Contact   @relation(fields: [contactId], references: [id])
+  messages  Message[]
+
+  @@index([contactId], map: "Conversation_contactId_fkey")
+}
+
+model Message {
+  id             String           @id @default(cuid())
+  conversationId String
+  messageId      String?
+  direction      MessageDirection
+  content        String           @db.LongText
+  type           MessageType      @default(TEXT)
+  mediaUrl       String?
+  metadata       Json?
+  timestamp      DateTime         @default(now())
+  status         MessageStatus    @default(SENT)
+  createdAt      DateTime         @default(now())
+  updatedAt      DateTime         @updatedAt
+  conversation   Conversation     @relation(fields: [conversationId], references: [id])
+
+  @@index([conversationId], map: "Message_conversationId_fkey")
+}
+
+model Booking {
+  id          String        @id @default(cuid())
+  contactId   String
+  serviceName String
+  dateTime    DateTime
+  status      BookingStatus @default(PENDING)
+  notes       String?
+  paymentId   String?       @unique
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+  contact     Contact       @relation(fields: [contactId], references: [id])
+
+  @@index([contactId], map: "Booking_contactId_fkey")
+}
+
+enum ContactStatus {
+  PROSPECT
+  LEAD
+  OPPORTUNITY
+  CUSTOMER
+  INACTIVE
+  DISQUALIFIED
+}
+
+enum MessageDirection {
+  INBOUND
+  OUTBOUND
+}
+
+enum MessageType {
+  TEXT
+  IMAGE
+  AUDIO
+  VIDEO
+  DOCUMENT
+  LOCATION
+  CONTACT
+  BUTTONS
+  TEMPLATE
+}
+
+enum MessageStatus {
+  SENT
+  DELIVERED
+  READ
+  FAILED
+  RECEIVED
+}
+
+enum BookingStatus {
+  PENDING
+  CONFIRMED
+  CANCELLED
+  COMPLETED
+  NO_SHOW
+}
