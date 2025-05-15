@@ -2,7 +2,7 @@ import WhatsAppAIService from '#services/whatsappai.service.js';
 import WahaService from '#services/waha.service.js';
 import { PrimateService } from '@thewebchimp/primate';
 import ExcelJS from 'exceljs';
-
+import { PrismaClient } from '@prisma/client';
 // Inicializar Prisma Client
 const prisma = new PrismaClient();
 class MainController {
