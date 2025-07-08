@@ -1,9 +1,10 @@
 import 'dotenv/config';
 import axios from 'axios';
-import {PrismaClient} from '@prisma/client';
+import { PrismaClient } from '@prisma/client';
 import WahaService from '#services/waha.service.js';
 
 const prisma = new PrismaClient();
+
 class WhatsAppAIService {
 	/**
 	 * Procesa un mensaje entrante de WhatsApp
@@ -165,192 +166,204 @@ class WhatsAppAIService {
 		// Definir tools disponibles para la IA
 		const tools = [
 			{
-				type: 'function',
-				function: {
-					name: 'analyzeCustomerIntent',
-					description: 'Analiza la intención del cliente solamente sino solicita especificamente booking. Si especifica booking NO uses esto.',
-					parameters: {
-						type: 'object',
-						properties: {
-							contactId: {
-								type: 'string',
-								description: 'ID del contacto',
+				'type': 'function',
+				'name': 'analyzeCustomerIntent',
+				'description': 'Analyzes customer intent only when they don\'t specifically request booking. If they specify booking, DO NOT use this function.',
+				'function': {
+					'name': 'analyzeCustomerIntent',
+					'description': 'Analyzes customer intent only when they don\'t specifically request booking. If they specify booking, DO NOT use this function.',
+					'parameters': {
+						'type': 'object',
+						'properties': {
+							'contactId': {
+								'type': 'string',
+								'description': 'Contact ID',
 							},
-							intent: {
-								type: 'string',
-								enum: [ 'BOOKING_REQUEST', 'BOOKING_CONFIRMATION', 'SERVICE_INQUIRY', 'PRICING_INQUIRY', 'GENERAL_QUESTION', 'GREETING', 'OTHER' ],
-								description: 'La intención principal del cliente',
+							'intent': {
+								'type': 'string',
+								'enum': [ 'BOOKING_REQUEST', 'BOOKING_CONFIRMATION', 'SERVICE_INQUIRY', 'PRICING_INQUIRY', 'GENERAL_QUESTION', 'GREETING', 'OTHER' ],
+								'description': 'Primary customer intent',
 							},
-							contactStatus: {
-								type: 'string',
-								enum: [ 'PROSPECT', 'LEAD', 'OPPORTUNITY', 'CUSTOMER', 'INACTIVE', 'DISQUALIFIED' ],
-								description: 'Estado sugerido para el contacto según su interacción',
+							'contactStatus': {
+								'type': 'string',
+								'enum': [ 'PROSPECT', 'LEAD', 'OPPORTUNITY', 'CUSTOMER', 'INACTIVE', 'DISQUALIFIED' ],
+								'description': 'Suggested contact status based on their interaction',
 							},
-							leadScore: {
-								type: 'integer',
-								description: 'Puntuación 0-100 que refleja qué tan calificado es este lead',
+							'leadScore': {
+								'type': 'integer',
+								'description': 'Score from 0-100 reflecting how qualified this lead is',
 							},
-							interestedIn: {
-								type: 'array',
-								items: { type: 'string' },
-								description: 'Servicios en los que el cliente muestra interés',
+							'interestedIn': {
+								'type': 'array',
+								'items': { 'type': 'string' },
+								'description': 'Services the customer shows interest in',
 							},
-							needsHumanAgent: {
-								type: 'boolean',
-								description: 'Indica si la consulta requiere un agente humano',
+							'needsHumanAgent': {
+								'type': 'boolean',
+								'description': 'Indicates if the inquiry requires a human agent',
 							},
-							extractedInfo: {
-								type: 'object',
-								description: 'Información relevante extraída del mensaje',
-								properties: {
-									name: { type: 'string', description: 'Nombre del cliente' },
-									email: { type: 'string', description: 'Email del cliente' },
-									desiredDate: { type: 'string', description: 'Fecha deseada para el servicio' },
-									serviceName: { type: 'string', description: 'Servicio específico solicitado' },
-									notes: { type: 'string', description: 'Detalles adicionales' },
+							'extractedInfo': {
+								'type': 'object',
+								'description': 'Relevant information extracted from the message',
+								'properties': {
+									'name': { 'type': 'string', 'description': 'Customer name' },
+									'email': { 'type': 'string', 'description': 'Customer email' },
+									'desiredDate': { 'type': 'string', 'description': 'Desired date for the service' },
+									'serviceName': { 'type': 'string', 'description': 'Specific service requested' },
+									'notes': { 'type': 'string', 'description': 'Additional details' },
 								},
 							},
 						},
-						required: [ 'contactId', 'intent', 'contactStatus', 'leadScore', 'needsHumanAgent' ],
+						'required': [ 'contactId', 'intent', 'contactStatus', 'leadScore', 'needsHumanAgent' ],
 					},
 				},
 			},
 			{
-				type: 'function',
-				function: {
-					name: 'createBooking',
-					description: 'Crea un registro de reserva en el sistema si el cliente lo solicita.',
-					parameters: {
-						type: 'object',
-						properties: {
-							contactId: {
-								type: 'string',
-								description: 'ID del contacto',
+				'type': 'function',
+				'name': 'createBooking',
+				'description': 'Creates a booking record in the system when the customer requests it.',
+				'function': {
+					'name': 'createBooking',
+					'description': 'Creates a booking record in the system when the customer requests it.',
+					'parameters': {
+						'type': 'object',
+						'properties': {
+							'contactId': {
+								'type': 'string',
+								'description': 'Contact ID',
 							},
-							serviceName: {
-								type: 'string',
-								description: 'Nombre del servicio a reservar',
+							'serviceName': {
+								'type': 'string',
+								'description': 'Name of the service to book',
 							},
-							dateTime: {
-								type: 'string',
-								description: 'Fecha y hora de la reserva (formato ISO)',
+							'dateTime': {
+								'type': 'string',
+								'description': 'Date and time of the booking (ISO format)',
 							},
-							notes: {
-								type: 'string',
-								description: 'Notas adicionales',
+							'notes': {
+								'type': 'string',
+								'description': 'Additional notes',
 							},
 						},
-						required: [ 'contactId', 'serviceName', 'dateTime' ],
+						'required': [ 'contactId', 'serviceName', 'dateTime' ],
 					},
 				},
 			},
 			{
-				type: 'function',
-				function: {
-					name: 'updateBookingStatus',
-					description: 'Actualiza el estado de una reserva existente',
-					parameters: {
-						type: 'object',
-						properties: {
-							contactId: {
-								type: 'string',
-								description: 'ID del contacto propietario de la reserva',
+				'type': 'function',
+				'name': 'updateBookingStatus',
+				'description': 'Updates the status of an existing booking',
+				'function': {
+					'name': 'updateBookingStatus',
+					'description': 'Updates the status of an existing booking',
+					'parameters': {
+						'type': 'object',
+						'properties': {
+							'contactId': {
+								'type': 'string',
+								'description': 'Contact ID who owns the booking',
 							},
-							bookingId: {
-								type: 'string',
-								description: 'ID de la reserva a actualizar',
+							'bookingId': {
+								'type': 'string',
+								'description': 'ID of the booking to update',
 							},
-							status: {
-								type: 'string',
-								enum: [ 'PENDING', 'CONFIRMED', 'CANCELLED', 'COMPLETED', 'NO_SHOW' ],
-								description: 'Nuevo estado para la reserva',
+							'status': {
+								'type': 'string',
+								'enum': [ 'PENDING', 'CONFIRMED', 'CANCELLED', 'COMPLETED', 'NO_SHOW' ],
+								'description': 'New status for the booking',
 							},
-							notes: {
-								type: 'string',
-								description: 'Notas adicionales',
+							'notes': {
+								'type': 'string',
+								'description': 'Additional notes',
 							},
 						},
-						required: [ 'contactId', 'bookingId', 'status' ],
+						'required': [ 'contactId', 'bookingId', 'status' ],
 					},
 				},
 			},
 			{
-				type: 'function',
-				function: {
-					name: 'updateContactInfo',
-					description: 'Actualiza información de un contacto',
-					parameters: {
-						type: 'object',
-						properties: {
-							contactId: {
-								type: 'string',
-								description: 'ID del contacto a actualizar',
+				'type': 'function',
+				'name': 'updateContactInfo',
+				'description': 'Updates contact information',
+				'function': {
+					'name': 'updateContactInfo',
+					'description': 'Updates contact information',
+					'parameters': {
+						'type': 'object',
+						'properties': {
+							'contactId': {
+								'type': 'string',
+								'description': 'ID of the contact to update',
 							},
-							updateData: {
-								type: 'object',
-								properties: {
-									name: { type: 'string', description: 'Nombre del contacto' },
-									email: { type: 'string', description: 'Email del contacto' },
-									status: {
-										type: 'string',
-										enum: [ 'PROSPECT', 'LEAD', 'OPPORTUNITY', 'CUSTOMER', 'INACTIVE', 'DISQUALIFIED' ],
-										description: 'Estado del contacto',
+							'updateData': {
+								'type': 'object',
+								'properties': {
+									'name': { 'type': 'string', 'description': 'Contact name' },
+									'email': { 'type': 'string', 'description': 'Contact email' },
+									'status': {
+										'type': 'string',
+										'enum': [ 'PROSPECT', 'LEAD', 'OPPORTUNITY', 'CUSTOMER', 'INACTIVE', 'DISQUALIFIED' ],
+										'description': 'Contact status',
 									},
-									leadScore: { type: 'integer', description: 'Puntuación como lead (0-100)' },
-									source: { type: 'string', description: 'Origen del contacto' },
-									notes: { type: 'string', description: 'Notas sobre el contacto' },
-									isOptedIn: {
-										type: 'boolean',
-										description: 'Ha dado consentimiento para comunicaciones',
+									'leadScore': { 'type': 'integer', 'description': 'Lead score (0-100)' },
+									'source': { 'type': 'string', 'description': 'Contact source' },
+									'notes': { 'type': 'string', 'description': 'Notes about the contact' },
+									'isOptedIn': {
+										'type': 'boolean',
+										'description': 'Has given consent for communications',
 									},
-									isActive: { type: 'boolean', description: 'Si el contacto está activo' },
+									'isActive': { 'type': 'boolean', 'description': 'Whether the contact is active' },
 								},
 							},
 						},
-						required: [ 'contactId', 'updateData' ],
+						'required': [ 'contactId', 'updateData' ],
 					},
 				},
 			},
 			{
-				type: 'function',
-				function: {
-					name: 'getContactBookings',
-					description: 'Obtiene las reservas de un contacto',
-					parameters: {
-						type: 'object',
-						properties: {
-							contactId: {
-								type: 'string',
-								description: 'ID del contacto',
+				'type': 'function',
+				'name': 'getContactBookings',
+				'description': 'Gets bookings for a contact',
+				'function': {
+					'name': 'getContactBookings',
+					'description': 'Gets bookings for a contact',
+					'parameters': {
+						'type': 'object',
+						'properties': {
+							'contactId': {
+								'type': 'string',
+								'description': 'Contact ID',
 							},
-							status: {
-								type: 'string',
-								enum: [ 'PENDING', 'CONFIRMED', 'CANCELLED', 'COMPLETED', 'NO_SHOW' ],
-								description: 'Filtrar por estado (opcional)',
+							'status': {
+								'type': 'string',
+								'enum': [ 'PENDING', 'CONFIRMED', 'CANCELLED', 'COMPLETED', 'NO_SHOW' ],
+								'description': 'Filter by status (optional)',
 							},
 						},
-						required: [ 'contactId' ],
+						'required': [ 'contactId' ],
 					},
 				},
 			},
 			{
-				type: 'function',
-				function: {
-					name: 'addContactNotes',
-					description: 'Agrega notas a un contacto',
-					parameters: {
-						type: 'object',
-						properties: {
-							contactId: {
-								type: 'string',
-								description: 'ID del contacto',
+				'type': 'function',
+				'name': 'addContactNotes',
+				'description': 'Adds notes to a contact',
+				'function': {
+					'name': 'addContactNotes',
+					'description': 'Adds notes to a contact',
+					'parameters': {
+						'type': 'object',
+						'properties': {
+							'contactId': {
+								'type': 'string',
+								'description': 'Contact ID',
 							},
-							notes: {
-								type: 'string',
-								description: 'Notas a agregar',
+							'notes': {
+								'type': 'string',
+								'description': 'Notes to add',
 							},
 						},
-						required: [ 'contactId', 'notes' ],
+						'required': [ 'contactId', 'notes' ],
 					},
 				},
 			},
@@ -576,7 +589,6 @@ CALENDARIO 2025:
 				error: `Contacto ${ contactId } no encontrado`,
 			};
 		}
-
 
 		// Convertir dateTime a objeto Date
 		const bookingDate = new Date(dateTime);
